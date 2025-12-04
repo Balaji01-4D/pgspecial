@@ -116,3 +116,50 @@ func ListDatabases(ctx context.Context, db DB, pattern string, verbose bool) (*R
 
 	return res, nil
 }
+
+func ListSchemas(ctx context.Context, db DB, pattern string, verbose bool) (*Result, error) {
+	var sb strings.Builder
+	args := []any{}
+	argIndex := 1
+
+
+	sb.WriteString(`
+	SELECT n.nspname AS name, pg_catalog.pg_get_userbyid(n.nspowner) AS owner
+	`)
+
+	if verbose {
+		sb.WriteString(`
+		, pg_catalog.array_to_string(n.nspacl, E'\\n') AS access_privileges, pg_catalog.obj_description(n.oid, 'pg_namespace') AS description
+		`)
+	}
+	sb.WriteString(`FROM pg_catalog.pg_namespace n WHERE n.nspname`)
+
+	if pattern != "" {
+		_, tablePattern := sqlNamePattern(pattern)
+
+		if tablePattern != "" {
+			sb.WriteString("~ $" + strconv.Itoa(argIndex) + " ")
+			args = append(args, tablePattern)
+			argIndex++
+		}
+	} else {
+		sb.WriteString(`
+		!~ '^pg_' AND n.nspname <> 'information_schema'\n
+		`)
+	}
+
+	sb.WriteString("ORDER BY 1")
+	rows, err := db.Query(ctx, sb.String(), args...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	res := &Result{
+		Title: "Schema",
+		Rows: rows,
+		Columns: rows.FieldDescriptions(),
+		Status: "OKAY",
+	}
+	return res, nil
+}
