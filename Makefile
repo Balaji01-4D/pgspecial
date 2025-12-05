@@ -11,4 +11,4 @@ run:
 	@echo "Application started."
 
 fmt:
-	gofmt -s -w ${main_package_pah}
+	gofmt -w ${main_package_pah}
