@@ -21,8 +21,17 @@ type Result struct {
 }
 
 type SpecialCommand struct {
-	Name          string
+	Cmd           string
+	Syntax        string
+	Description   string
+	Handler       SpecialHandler
+	CaseSensitive bool
+}
+
+type SpecialCommandRegistry struct {
+	Cmd          string
 	Alias         string
+	Syntax        string
 	Description   string
 	Handler       SpecialHandler
 	CaseSensitive bool
