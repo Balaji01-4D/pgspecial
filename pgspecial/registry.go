@@ -1,14 +1,35 @@
 package pgspecial
 
-import "context"
-
+import (
+	"context"
+	"strings"
+)
 
 type SpecialHandler func(ctx context.Context, db DB, args string) (*Result, error)
 
+var command_map = map[string]SpecialCommand{}
 
+func Register(cmdRegistry SpecialCommandRegistry) {
 
-var registry = map[string]SpecialCommand{}
+	normalize := func(s string) string {
+		if cmdRegistry.CaseSensitive {
+			return s
+		}
+		return strings.ToLower(s)
+	}
 
-func Register(cmd SpecialCommand) {
-	registry[cmd.Name] = cmd
+	cmd := SpecialCommand{
+		Cmd:           cmdRegistry.Cmd,
+		Description:   cmdRegistry.Description,
+		Syntax:        cmdRegistry.Syntax,
+		CaseSensitive: cmdRegistry.CaseSensitive,
+		Handler:       cmdRegistry.Handler,
+	}
+
+	command_map[normalize(cmdRegistry.Cmd)] = cmd
+
+	for _, alias := range cmdRegistry.Alias {
+		command_map[normalize(alias)] = cmd
+	}
+
 }
