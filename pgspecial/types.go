@@ -22,11 +22,11 @@ type Result struct {
 
 type SpecialCommand struct {
 	Name          string
+	Alias         string
 	Description   string
 	Handler       SpecialHandler
 	CaseSensitive bool
 }
-
 
 // func main() {
 // 	p, _ := pgxpool.New(context.Background(), "post")
