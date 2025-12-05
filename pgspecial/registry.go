@@ -2,6 +2,7 @@ package pgspecial
 
 import (
 	"context"
+	"fmt"
 	"strings"
 )
 
@@ -32,4 +33,33 @@ func RegisterCommand(cmdRegistry SpecialCommandRegistry) {
 		command_map[normalize(alias)] = cmd
 	}
 
+}
+
+
+func ExecuteSpecialCommand(ctx context.Context, db DB, input string) (*Result, bool, error) {
+	if !strings.HasPrefix(input, "\\") {
+		return nil, false, nil
+	}
+
+	checkVerbose := func(cmd string) (string, bool) {
+		suff := "+"
+		return strings.TrimSuffix(cmd, suff), strings.HasSuffix(cmd, suff)
+	}
+
+	fields := strings.Fields(input)
+	cmd := fields[0]
+	args := strings.TrimSpace(strings.TrimPrefix(input, cmd))
+	
+	cmd, verbose := checkVerbose(cmd)
+
+	command, ok := command_map[cmd]
+	if !ok {
+		return nil, true, fmt.Errorf("Unknown Command: %s", cmd)
+	}
+	fmt.Println(cmd, args)
+	res, err := command.Handler(ctx, db, args, verbose)
+	if err != nil {
+		return nil, true, err
+	}
+	return res, true, nil	
 }
