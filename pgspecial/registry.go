@@ -5,11 +5,11 @@ import (
 	"strings"
 )
 
-type SpecialHandler func(ctx context.Context, db DB, args string) (*Result, error)
+type SpecialHandler func(ctx context.Context, db DB, args string, verbose bool) (*Result, error)
 
 var command_map = map[string]SpecialCommand{}
 
-func Register(cmdRegistry SpecialCommandRegistry) {
+func RegisterCommand(cmdRegistry SpecialCommandRegistry) {
 
 	normalize := func(s string) string {
 		if cmdRegistry.CaseSensitive {
