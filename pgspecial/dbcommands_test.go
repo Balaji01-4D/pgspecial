@@ -462,3 +462,151 @@ func TestListRolesWithPatternVerbose(t *testing.T) {
 		assert.True(t, containsByField(allRows, "rolname", role), "Expected role %s not found", role)
 	}
 }
+
+
+func TestListRolesWithNoMatchingPatternVerbose(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	pattern := "pg_xwrite*" // intentional typo
+	verbose := true
+
+	result, err := pgspecial.ListRoles(context.Background(), db, pattern, verbose)
+	if err != nil {
+		t.Fatalf("ListRoles failed: %v", err)
+	}
+	defer result.Rows.Close()
+
+	fds := result.Columns
+	assert.NotNil(t, fds)
+
+	columnsExpected := []string{
+		"rolname",
+		"rolsuper",
+		"rolinherit",
+		"rolcreaterole",
+		"rolcreatedb",
+		"rolcanlogin",
+		"rolconnlimit",
+		"rolvaliduntil",
+		"memberof",
+		"description",
+		"rolreplication",
+	}
+	assert.Equal(t, columnsExpected, getColumnNames(fds), "Column names do not match expected")
+	// expecting 11 columns
+	assert.Len(t, fds, 11)
+
+	var allRows []map[string]interface{}
+	allRows, err = RowsToMaps(result.Rows)
+	if err != nil {
+		t.Fatalf("Failed to read rows: %v", err)
+	}
+	assert.Len(t, allRows, 0, "Expected no roles matching the pattern")
+}
+
+
+func TestListTablespaces(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	pattern := ""
+	verbose := false
+
+	result, err := pgspecial.ListTablespaces(context.Background(), db, pattern, verbose)
+	if err != nil {
+		t.Fatalf("ListTablespaces failed: %v", err)
+	}
+	defer result.Rows.Close()
+
+	fds := result.Columns
+	assert.NotNil(t, fds)
+
+	columnsExpected := []string{
+		"name",
+		"owner",
+		"location",
+	}
+
+	assert.Equal(t, columnsExpected, getColumnNames(fds), "Column names do not match expected")
+	// expecting 3 columns
+	assert.Len(t, fds, 3)
+
+	var allRows []map[string]interface{}
+	allRows, err = RowsToMaps(result.Rows)
+	if err != nil {
+		t.Fatalf("Failed to read rows: %v", err)
+	}
+	assert.True(t, containsByField(allRows, "name", "pg_default"))
+	assert.True(t, containsByField(allRows, "name", "pg_global"))
+}
+
+func TestListTablespacesWithPattern(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	pattern := "pg_d*"
+	verbose := false
+
+	result, err := pgspecial.ListTablespaces(context.Background(), db, pattern, verbose)
+	if err != nil {
+		t.Fatalf("ListTablespaces failed: %v", err)
+	}
+	defer result.Rows.Close()
+
+	fds := result.Columns
+	assert.NotNil(t, fds)
+
+	columnsExpected := []string{
+		"name",
+		"owner",
+		"location",
+	}
+
+	assert.Equal(t, columnsExpected, getColumnNames(fds), "Column names do not match expected")
+	// expecting 3 columns
+	assert.Len(t, fds, 3)
+
+	var allRows []map[string]interface{}
+	allRows, err = RowsToMaps(result.Rows)
+	if err != nil {
+		t.Fatalf("Failed to read rows: %v", err)
+	}
+	assert.Len(t, allRows, 1)
+	assert.True(t, containsByField(allRows, "name", "pg_default"))
+	assert.False(t, containsByField(allRows, "name", "pg_global"))
+}
+
+func TestListTablespacesWithInvalidPattern(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	pattern := "pg_xd*"
+	verbose := false
+
+	result, err := pgspecial.ListTablespaces(context.Background(), db, pattern, verbose)
+	if err != nil {
+		t.Fatalf("ListTablespaces failed: %v", err)
+	}
+	defer result.Rows.Close()
+
+	fds := result.Columns
+	assert.NotNil(t, fds)
+
+	columnsExpected := []string{
+		"name",
+		"owner",
+		"location",
+	}
+
+	assert.Equal(t, columnsExpected, getColumnNames(fds), "Column names do not match expected")
+	// expecting 3 columns
+	assert.Len(t, fds, 3)
+
+	var allRows []map[string]interface{}
+	allRows, err = RowsToMaps(result.Rows)
+	if err != nil {
+		t.Fatalf("Failed to read rows: %v", err)
+	}
+	assert.Len(t, allRows, 0)
+}
