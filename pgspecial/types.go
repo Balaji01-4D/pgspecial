@@ -27,9 +27,3 @@ type SpecialCommand struct {
 	Handler       SpecialHandler
 	CaseSensitive bool
 }
-
-// func main() {
-// 	p, _ := pgxpool.New(context.Background(), "post")
-// 	r, _ := p.Query(context.Background(), "s")
-// 	_ = r
-// }
