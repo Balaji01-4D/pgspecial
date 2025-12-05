@@ -68,6 +68,22 @@ func containsDB(rows []map[string]interface{}, name string) bool {
     return false
 }
 
+func containsByField(rows []map[string]interface{}, field, expected string) bool {
+    for _, row := range rows {
+        v := row[field]
+        switch x := v.(type) {
+        case string:
+            if x == expected {
+                return true
+            }
+        case []byte:
+            if string(x) == expected {
+                return true
+            }
+        }
+    }
+    return false
+}
 
 func TestListDatabases(t *testing.T) {
 	db := connectTestDB(t)
@@ -260,4 +276,189 @@ func TestListDatabaseWithNoMatchingPattern(t *testing.T) {
 		t.Fatalf("Failed to read rows: %v", err)
 	}
 	assert.Len(t, allRows, 0, "Expected no database matching the pattern")
+}
+
+func TestListRoles(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	pattern := ""
+	verbose := false
+
+	result, err := pgspecial.ListRoles(context.Background(), db, pattern, verbose)
+	if err != nil {
+		t.Fatalf("ListRoles failed: %v", err)
+	}
+	defer result.Rows.Close()
+
+	fds := result.Columns
+	assert.NotNil(t, fds)
+
+	columnsExpected := []string{
+		"rolname",
+		"rolsuper",
+		"rolinherit",
+		"rolcreaterole",
+		"rolcreatedb",
+		"rolcanlogin",
+		"rolconnlimit",
+		"rolvaliduntil",
+		"memberof",
+		"rolreplication",
+	}
+	assert.Equal(t, columnsExpected, getColumnNames(fds), "Column names do not match expected")
+	// expecting 10 columns
+	assert.Len(t, fds, 10)
+
+	var allRows []map[string]interface{}
+	allRows, err = RowsToMaps(result.Rows)
+	if err != nil {
+		t.Fatalf("Failed to read rows: %v", err)
+	}
+
+	var essentialDefaultRoles = []string{
+    "postgres",
+    "pg_monitor",
+    "pg_read_all_data",
+    "pg_write_all_data",
+	}
+
+	for _, role := range essentialDefaultRoles {
+		assert.True(t, containsByField(allRows, "rolname", role), "Expected role %s not found", role)
+	}
+}
+
+func TestListRolesWithPattern(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	pattern := "pg_w*"
+	verbose := false
+
+	result, err := pgspecial.ListRoles(context.Background(), db, pattern, verbose)
+	if err != nil {
+		t.Fatalf("ListRoles failed: %v", err)
+	}
+	defer result.Rows.Close()
+
+	fds := result.Columns
+	assert.NotNil(t, fds)
+
+	columnsExpected := []string{
+		"rolname",
+		"rolsuper",
+		"rolinherit",
+		"rolcreaterole",
+		"rolcreatedb",
+		"rolcanlogin",
+		"rolconnlimit",
+		"rolvaliduntil",
+		"memberof",
+		"rolreplication",
+	}
+	assert.Equal(t, columnsExpected, getColumnNames(fds), "Column names do not match expected")
+	// expecting 10 columns
+	assert.Len(t, fds, 10)
+
+	var allRows []map[string]interface{}
+	allRows, err = RowsToMaps(result.Rows)
+	if err != nil {
+		t.Fatalf("Failed to read rows: %v", err)
+	}
+	assert.Len(t, allRows, 2)
+	var expectedRoles = []string{
+	"pg_write_all_data",
+	"pg_write_server_files",
+	}
+	for _, role := range expectedRoles {
+		assert.True(t, containsByField(allRows, "rolname", role), "Expected role %s not found", role)
+	}
+}
+
+func TestListRolesWithNoMatchingPattern(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	pattern := "pg_xwrite*" // intentional typo
+	verbose := false
+
+	result, err := pgspecial.ListRoles(context.Background(), db, pattern, verbose)
+	if err != nil {
+		t.Fatalf("ListRoles failed: %v", err)
+	}
+	defer result.Rows.Close()
+
+	fds := result.Columns
+	assert.NotNil(t, fds)
+
+	columnsExpected := []string{
+		"rolname",
+		"rolsuper",
+		"rolinherit",
+		"rolcreaterole",
+		"rolcreatedb",
+		"rolcanlogin",
+		"rolconnlimit",
+		"rolvaliduntil",
+		"memberof",
+		"rolreplication",
+	}
+	assert.Equal(t, columnsExpected, getColumnNames(fds), "Column names do not match expected")
+	// expecting 10 columns
+	assert.Len(t, fds, 10)
+
+	var allRows []map[string]interface{}
+	allRows, err = RowsToMaps(result.Rows)
+	if err != nil {
+		t.Fatalf("Failed to read rows: %v", err)
+	}
+	assert.Len(t, allRows, 0, "Expected no roles matching the pattern")
+}
+
+func TestListRolesWithPatternVerbose(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	pattern := "pg_w*"
+	verbose := true
+
+	result, err := pgspecial.ListRoles(context.Background(), db, pattern, verbose)
+	if err != nil {
+		t.Fatalf("ListRoles failed: %v", err)
+	}
+	defer result.Rows.Close()
+
+	fds := result.Columns
+	assert.NotNil(t, fds)
+
+	columnsExpected := []string{
+		"rolname",
+		"rolsuper",
+		"rolinherit",
+		"rolcreaterole",
+		"rolcreatedb",
+		"rolcanlogin",
+		"rolconnlimit",
+		"rolvaliduntil",
+		"memberof",
+		"description",
+		"rolreplication",
+	}
+	assert.Equal(t, columnsExpected, getColumnNames(fds), "Column names do not match expected")
+	// expecting 11 columns
+	assert.Len(t, fds, 11)
+
+	var allRows []map[string]interface{}
+	allRows, err = RowsToMaps(result.Rows)
+	if err != nil {
+		t.Fatalf("Failed to read rows: %v", err)
+	}
+	assert.Len(t, allRows, 2)
+	var expectedRoles = []string{
+	"pg_write_all_data",
+	"pg_write_server_files",
+	}
+	for _, role := range expectedRoles {
+		assert.True(t, containsByField(allRows, "rolname", role), "Expected role %s not found", role)
+	}
 }
