@@ -95,7 +95,6 @@ func ListDatabases(ctx context.Context, db DB, pattern string, verbose bool) (*R
 		if tablePattern != "" {
 			sb.WriteString("\nWHERE d.datname ~ $" + strconv.Itoa(argIndex) + " ")
 			args = append(args, tablePattern)
-			argIndex++
 		}
 	}
 
@@ -104,7 +103,7 @@ func ListDatabases(ctx context.Context, db DB, pattern string, verbose bool) (*R
 	if err != nil {
 		return nil, err
 	}
-
+	
 	res := &Result{
 		Title:   "DATABASES",
 		Rows:    rows,
@@ -137,7 +136,6 @@ func ListSchemas(ctx context.Context, db DB, pattern string, verbose bool) (*Res
 		if tablePattern != "" {
 			sb.WriteString("~ $" + strconv.Itoa(argIndex) + " ")
 			args = append(args, tablePattern)
-			argIndex++
 		}
 	} else {
 		sb.WriteString(`
@@ -226,7 +224,6 @@ func ListPrivileges(ctx context.Context, db DB, pattern string, verbose bool) (*
 		if schema != "" {
 			sb.WriteString(" AND n.nspname OPERATOR(pg_catalog.~) $" + strconv.Itoa(argIndex) + "COLLATE pg_catalog.default ")
 			args = append(args, schema)
-			argIndex++
 		}
 	} else {
 		sb.WriteString(" AND pg_catalog.pg_table_is_visible(c.oid) ")
@@ -247,5 +244,54 @@ func ListPrivileges(ctx context.Context, db DB, pattern string, verbose bool) (*
 		Columns: rows.FieldDescriptions(),
 		Status:  "OKAY",
 	}
+	return res, nil
+}
+
+func ListRoles(ctx context.Context, db DB, pattern string, verbose bool) (*Result, error) {
+	var sb strings.Builder
+	args := []any{}
+	argIndex := 1
+
+	sb.WriteString(`
+	   SELECT r.rolname,
+                r.rolsuper,
+                r.rolinherit,
+                r.rolcreaterole,
+                r.rolcreatedb,
+                r.rolcanlogin,
+                r.rolconnlimit,
+                r.rolvaliduntil,
+                ARRAY(SELECT b.rolname FROM pg_catalog.pg_auth_members m JOIN pg_catalog.pg_roles b ON (m.roleid = b.oid) WHERE m.member = r.oid) as memberof,
+	`)
+
+	if verbose {
+		sb.WriteString("pg_catalog.shobj_description(r.oid, 'pg_authid') AS description, ")
+	} 
+	sb.WriteString(`
+	 	r.rolreplication
+			FROM pg_catalog.pg_roles r
+	`)
+
+	if pattern != "" {
+		_, tablePattern := sqlNamePattern(pattern)
+		if tablePattern != "" {
+			sb.WriteString(" WHERE r.rolname ~ $" + strconv.Itoa(argIndex) + " ")
+			args = append(args, tablePattern)
+		}
+	}
+	
+	sb.WriteString(" ORDER BY 1;")
+	rows, err := db.Query(ctx, sb.String(), args...)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &Result{
+		Title:   "ROLES",
+		Rows:    rows,
+		Columns: rows.FieldDescriptions(),
+		Status:  "OKAY",
+	}
+	
 	return res, nil
 }
