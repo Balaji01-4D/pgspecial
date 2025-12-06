@@ -154,6 +154,76 @@ func DropFunction(t *testing.T, ctx context.Context, pool *pgxpool.Pool, funcNam
 	}
 }
 
+func CreateDefaultPrivileges(
+	t *testing.T,
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	role string,
+) {
+	t.Helper()
+
+	sql := `
+		ALTER DEFAULT PRIVILEGES
+		FOR ROLE current_user
+		IN SCHEMA public
+		GRANT SELECT ON TABLES TO ` + role + `;
+	`
+
+	if _, err := pool.Exec(ctx, sql); err != nil {
+		t.Fatalf("create default privileges failed: %v", err)
+	}
+}
+
+func DropDefaultPrivileges(
+	t *testing.T,
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	role string,
+) {
+	t.Helper()
+
+	sql := `
+		ALTER DEFAULT PRIVILEGES
+		FOR ROLE current_user
+		IN SCHEMA public
+		REVOKE SELECT ON TABLES FROM ` + role + `;
+	`
+
+	if _, err := pool.Exec(ctx, sql); err != nil {
+		t.Fatalf("drop default privileges failed: %v", err)
+	}
+}
+
+func CreateSchema(
+	t *testing.T,
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	schema string,
+) {
+	t.Helper()
+
+	sql := `CREATE SCHEMA ` + schema
+
+	if _, err := pool.Exec(ctx, sql); err != nil {
+		t.Fatalf("create schema %q failed: %v", schema, err)
+	}
+}
+
+func DropSchema(
+	t *testing.T,
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	schema string,
+) {
+	t.Helper()
+
+	sql := `DROP SCHEMA ` + schema + ` CASCADE`
+
+	if _, err := pool.Exec(ctx, sql); err != nil {
+		t.Fatalf("drop schema %q failed: %v", schema, err)
+	}
+}
+
 func RowsToMaps(rows pgx.Rows) ([]map[string]interface{}, error) {
 	cols := rows.FieldDescriptions()
 	colCount := len(cols)
@@ -407,6 +477,221 @@ func TestListDatabaseWithNoMatchingPattern(t *testing.T) {
 		t.Fatalf("Failed to read rows: %v", err)
 	}
 	assert.Len(t, allRows, 0, "Expected no database matching the pattern")
+}
+
+func TestListSchemas(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	pattern := ""
+	verbose := false
+
+	schemaNames := []string{"test_schema1", "test_schema2"}
+	for _, schema := range schemaNames {
+		CreateSchema(t, context.Background(), db.(*pgxpool.Pool), schema)
+		defer DropSchema(t, context.Background(), db.(*pgxpool.Pool), schema)
+	}
+
+	result, err := pgspecial.ListSchemas(context.Background(), db, pattern, verbose)
+	if err != nil {
+		t.Fatalf("ListSchemas failed: %v", err)
+	}
+	defer result.Close()
+
+	fds := result.FieldDescriptions()
+	assert.NotNil(t, fds)
+
+	columnsExpected := []string{
+		"name",
+		"owner",
+	}
+	assert.Equal(t, columnsExpected, getColumnNames(fds), "Column names do not match expected")
+	assert.Len(t, fds, 2)
+
+	var allRows []map[string]interface{}
+	allRows, err = RowsToMaps(result)
+	if err != nil {
+		t.Fatalf("Failed to read rows: %v", err)
+	}
+	assert.GreaterOrEqual(t, len(allRows), 2, "Expected at least two schemas matching the pattern")
+	for _, schema := range schemaNames {
+		assert.True(t, containsByField(allRows, "name", schema), "Expected schema %s not found", schema)
+	}
+}
+
+func TestListSchemasWithPattern(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	pattern := "test_schema*"
+	verbose := false
+
+	schemaNames := []string{"test_schema1", "test_schema2"}
+	for _, schema := range schemaNames {
+		CreateSchema(t, context.Background(), db.(*pgxpool.Pool), schema)
+		defer DropSchema(t, context.Background(), db.(*pgxpool.Pool), schema)
+	}
+
+	result, err := pgspecial.ListSchemas(context.Background(), db, pattern, verbose)
+	if err != nil {
+		t.Fatalf("ListSchemas failed: %v", err)
+	}
+	defer result.Close()
+
+	fds := result.FieldDescriptions()
+	assert.NotNil(t, fds)
+
+	columnsExpected := []string{
+		"name",
+		"owner",
+	}
+	assert.Equal(t, columnsExpected, getColumnNames(fds), "Column names do not match expected")
+	assert.Len(t, fds, 2)
+
+	var allRows []map[string]interface{}
+	allRows, err = RowsToMaps(result)
+	if err != nil {
+		t.Fatalf("Failed to read rows: %v", err)
+	}
+	assert.GreaterOrEqual(t, len(allRows), 2, "Expected at least two schemas matching the pattern")
+	for _, schema := range schemaNames {
+		assert.True(t, containsByField(allRows, "name", schema), "Expected schema %s not found", schema)
+	}
+}
+
+func TestListSchemasWithNoMatchingPattern(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	pattern := "non_existing_schema"
+	verbose := false
+
+	result, err := pgspecial.ListSchemas(context.Background(), db, pattern, verbose)
+	if err != nil {
+		t.Fatalf("ListSchemas failed: %v", err)
+	}
+	defer result.Close()
+
+	fds := result.FieldDescriptions()
+	assert.NotNil(t, fds)
+
+	columnsExpected := []string{
+		"name",
+		"owner",
+	}
+	assert.Equal(t, columnsExpected, getColumnNames(fds), "Column names do not match expected")
+	assert.Len(t, fds, 2)
+
+	var allRows []map[string]interface{}
+	allRows, err = RowsToMaps(result)
+	if err != nil {
+		t.Fatalf("Failed to read rows: %v", err)
+	}
+	assert.Len(t, allRows, 0, "Expected no schemas matching the pattern")
+}
+
+func TestListSchemasVerbose(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	pattern := ""
+	verbose := true
+
+	result, err := pgspecial.ListSchemas(context.Background(), db, pattern, verbose)
+	if err != nil {
+		t.Fatalf("ListSchemas failed: %v", err)
+	}
+	defer result.Close()
+
+	fds := result.FieldDescriptions()
+	assert.NotNil(t, fds)
+
+	columnsExpected := []string{
+		"name",
+		"owner",
+		"access_privileges",
+		"description",
+	}
+	assert.Equal(t, columnsExpected, getColumnNames(fds), "Column names do not match expected")
+	assert.Len(t, fds, 4)
+
+	var allRows []map[string]interface{}
+	allRows, err = RowsToMaps(result)
+	if err != nil {
+		t.Fatalf("Failed to read rows: %v", err)
+	}
+	assert.GreaterOrEqual(t, len(allRows), 2, "Expected at least two schemas matching the pattern")
+}
+
+func TestListSchemasWithPatternVerbose(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	pattern := "test_schema*"
+	verbose := true
+
+	schemaNames := []string{"test_schema1", "test_schema2"}
+	for _, schema := range schemaNames {
+		CreateSchema(t, context.Background(), db.(*pgxpool.Pool), schema)
+		defer DropSchema(t, context.Background(), db.(*pgxpool.Pool), schema)
+	}
+
+	result, err := pgspecial.ListSchemas(context.Background(), db, pattern, verbose)
+	if err != nil {
+		t.Fatalf("ListSchemas failed: %v", err)
+	}
+	defer result.Close()
+
+	fds := result.FieldDescriptions()
+	assert.NotNil(t, fds)
+
+	columnsExpected := []string{
+		"name",
+		"owner",
+		"access_privileges",
+		"description",
+	}
+	assert.Equal(t, columnsExpected, getColumnNames(fds), "Column names do not match expected")
+	assert.Len(t, fds, 4)
+
+	var allRows []map[string]interface{}
+	allRows, err = RowsToMaps(result)
+	if err != nil {
+		t.Fatalf("Failed to read rows: %v", err)
+	}
+	assert.GreaterOrEqual(t, len(allRows), 2, "Expected at least two schemas matching the pattern")
+
+}
+func TestListSchemasWithNoMatchingPatternVerbose(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	pattern := "non_existing_schema"
+	verbose := true
+	result, err := pgspecial.ListSchemas(context.Background(), db, pattern, verbose)
+	if err != nil {
+		t.Fatalf("ListSchemas failed: %v", err)
+	}
+	defer result.Close()
+
+	fds := result.FieldDescriptions()
+	assert.NotNil(t, fds)
+
+	columnsExpected := []string{
+		"name",
+		"owner",
+		"access_privileges",
+		"description",
+	}
+	assert.Equal(t, columnsExpected, getColumnNames(fds), "Column names do not match expected")
+	assert.Len(t, fds, 4)
+
+	var allRows []map[string]interface{}
+	allRows, err = RowsToMaps(result)
+	if err != nil {
+		t.Fatalf("Failed to read rows: %v", err)
+	}
+	assert.Len(t, allRows, 0, "Expected no schemas matching the pattern")
 }
 
 func TestListRoles(t *testing.T) {
@@ -1307,7 +1592,7 @@ func TestListFunctions(t *testing.T) {
 func TestListFunctionsWithPattern(t *testing.T) {
 	db := connectTestDB(t)
 	defer db.(*pgxpool.Pool).Close()
-	
+
 	ctx := context.Background()
 	funcNames := []string{"calculate_discount", "get_user_status", "compute_tax"}
 	for _, funcName := range funcNames {
@@ -1537,4 +1822,138 @@ func TestListFunctionsVerboseWithNoMatchingPattern(t *testing.T) {
 		t.Fatalf("Failed to read rows: %v", err)
 	}
 	assert.Len(t, allRows, 0)
+}
+
+func TestListPrivileges(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	pattern := ""
+
+	result, err := pgspecial.ListPrivileges(context.Background(), db, pattern, false)
+	if err != nil {
+		t.Fatalf("ListPrivileges failed: %v", err)
+	}
+	defer result.Close()
+
+	fds := result.FieldDescriptions()
+	assert.NotNil(t, fds)
+
+	columnsExpected := []string{
+		"schema",
+		"name",
+		"type",
+		"access_privileges",
+		"column_privileges",
+		"policies",
+	}
+	assert.Equal(t, columnsExpected, getColumnNames(fds), "Column names do not match expected")
+	// expecting 6 columns
+	assert.Len(t, fds, 6)
+
+	var allRows []map[string]interface{}
+	allRows, err = RowsToMaps(result)
+	if err != nil {
+		t.Fatalf("Failed to read rows: %v", err)
+	}
+	assert.Greater(t, len(allRows), 0, "Expected at least one privilege entry")
+}
+
+func TestListDefaultPrivileges(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	pattern := ""
+
+	CreateDefaultPrivileges(t, context.Background(), db.(*pgxpool.Pool), "app_user")
+	defer DropDefaultPrivileges(t, context.Background(), db.(*pgxpool.Pool), "app_user")
+	result, err := pgspecial.ListDefaultPrivileges(context.Background(), db, pattern, false)
+	if err != nil {
+		t.Fatalf("ListDefaultPrivileges failed: %v", err)
+	}
+	defer result.Close()
+
+	fds := result.FieldDescriptions()
+	assert.NotNil(t, fds)
+
+	columnsExpected := []string{
+		"owner",
+		"schema",
+		"type",
+		"access_privileges",
+	}
+	assert.Equal(t, columnsExpected, getColumnNames(fds), "Column names do not match expected")
+	// expecting 4 columns
+	assert.Len(t, fds, 4)
+
+	var allRows []map[string]interface{}
+	allRows, err = RowsToMaps(result)
+	if err != nil {
+		t.Fatalf("Failed to read rows: %v", err)
+	}
+	assert.Greater(t, len(allRows), 0, "Expected at least one default privilege entry")
+}
+
+func TestListObjects(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	// Ensure we have at least one table
+	ctx := context.Background()
+	_, err := db.Exec(ctx, "CREATE TABLE IF NOT EXISTS test_list_objects (id int)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Exec(ctx, "DROP TABLE IF EXISTS test_list_objects")
+
+	pattern := "test_list_*"
+	verbose := false
+	// "r" for ordinary table
+	relkinds := []string{"r"}
+
+	result, err := pgspecial.ListObjects(ctx, db, pattern, verbose, relkinds)
+	if err != nil {
+		t.Fatalf("ListObjects failed: %v", err)
+	}
+	defer result.Close()
+
+	allRows, err := RowsToMaps(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.True(t, containsByField(allRows, "name", "test_list_objects"))
+}
+
+func TestListPrivilegesWithPattern(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	pattern := "pg_catalog.pg_class" // A known system table
+	result, err := pgspecial.ListPrivileges(context.Background(), db, pattern, false)
+	if err != nil {
+		t.Fatalf("ListPrivileges with pattern failed: %v", err)
+	}
+	defer result.Close()
+
+	// Just ensure it runs without error and returns rows (or empty rows if no privs found, but logic is covered)
+	_, err = RowsToMaps(result)
+	assert.NoError(t, err)
+}
+
+func TestListDefaultPrivilegesWithPattern(t *testing.T) {
+	db := connectTestDB(t)
+	defer db.(*pgxpool.Pool).Close()
+
+	// Setup a specific role/privilege to query against if needed,
+	// or just test the query generation logic with a pattern.
+	pattern := "public"
+	result, err := pgspecial.ListDefaultPrivileges(context.Background(), db, pattern, false)
+	if err != nil {
+		t.Fatalf("ListDefaultPrivileges with pattern failed: %v", err)
+	}
+	defer result.Close()
+
+	_, err = RowsToMaps(result)
+	assert.NoError(t, err)
 }
