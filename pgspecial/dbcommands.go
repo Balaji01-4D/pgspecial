@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
 )
 
 func init() {
@@ -20,7 +22,7 @@ func init() {
 	RegisterCommand(SpecialCommandRegistry{
 		Cmd:    "\\dt",
 		Syntax: "\\dt[+] [pattern]",
-		Handler: func(ctx context.Context, db DB, pattern string, verbose bool) (*Result, error) {
+		Handler: func(ctx context.Context, db DB, pattern string, verbose bool) (pgx.Rows, error) {
 			return ListObjects(ctx, db, pattern, verbose, []string{"r", "p"})
 		},
 		Description:   "List Tables",
@@ -77,7 +79,7 @@ func sqlNamePattern(pattern string) (schema, table string) {
 	return schema, table
 }
 
-func ListDatabases(ctx context.Context, db DB, pattern string, verbose bool) (*Result, error) {
+func ListDatabases(ctx context.Context, db DB, pattern string, verbose bool) (pgx.Rows, error) {
 	var sb strings.Builder
 	args := []any{}
 	argIndex := 1
@@ -126,17 +128,10 @@ func ListDatabases(ctx context.Context, db DB, pattern string, verbose bool) (*R
 		return nil, err
 	}
 
-	res := &Result{
-		Title:   "DATABASES",
-		Rows:    rows,
-		Columns: rows.FieldDescriptions(),
-		Status:  "OKAY",
-	}
-
-	return res, nil
+	return rows, nil
 }
 
-func ListSchemas(ctx context.Context, db DB, pattern string, verbose bool) (*Result, error) {
+func ListSchemas(ctx context.Context, db DB, pattern string, verbose bool) (pgx.Rows, error) {
 	var sb strings.Builder
 	args := []any{}
 	argIndex := 1
@@ -167,21 +162,10 @@ func ListSchemas(ctx context.Context, db DB, pattern string, verbose bool) (*Res
 
 	sb.WriteString("ORDER BY 1")
 	rows, err := db.Query(ctx, sb.String(), args...)
-
-	if err != nil {
-		return nil, err
-	}
-
-	res := &Result{
-		Title:   "Schema",
-		Rows:    rows,
-		Columns: rows.FieldDescriptions(),
-		Status:  "OKAY",
-	}
-	return res, nil
+	return rows, err
 }
 
-func ListPrivileges(ctx context.Context, db DB, pattern string, verbose bool) (*Result, error) {
+func ListPrivileges(ctx context.Context, db DB, pattern string, verbose bool) (pgx.Rows, error) {
 	var sb strings.Builder
 	args := []any{}
 	argIndex := 1
@@ -255,21 +239,10 @@ func ListPrivileges(ctx context.Context, db DB, pattern string, verbose bool) (*
 	sb.WriteString(" ORDER BY 1, 2")
 	println("final sql\n", sb.String(), args)
 	rows, err := db.Query(ctx, sb.String(), args...)
-
-	if err != nil {
-		return nil, err
-	}
-
-	res := &Result{
-		Title:   "Privileges",
-		Rows:    rows,
-		Columns: rows.FieldDescriptions(),
-		Status:  "OKAY",
-	}
-	return res, nil
+	return rows, err
 }
 
-func ListRoles(ctx context.Context, db DB, pattern string, verbose bool) (*Result, error) {
+func ListRoles(ctx context.Context, db DB, pattern string, verbose bool) (pgx.Rows, error) {
 	var sb strings.Builder
 	args := []any{}
 	argIndex := 1
@@ -304,21 +277,10 @@ func ListRoles(ctx context.Context, db DB, pattern string, verbose bool) (*Resul
 
 	sb.WriteString(" ORDER BY 1;")
 	rows, err := db.Query(ctx, sb.String(), args...)
-	if err != nil {
-		return nil, err
-	}
-
-	res := &Result{
-		Title:   "ROLES",
-		Rows:    rows,
-		Columns: rows.FieldDescriptions(),
-		Status:  "OKAY",
-	}
-
-	return res, nil
+	return rows, err
 }
 
-func ListDefaultPrivileges(ctx context.Context, db DB, pattern string, verbose bool) (*Result, error) {
+func ListDefaultPrivileges(ctx context.Context, db DB, pattern string, verbose bool) (pgx.Rows, error) {
 	var sb strings.Builder
 	args := []any{}
 
@@ -346,20 +308,10 @@ func ListDefaultPrivileges(ctx context.Context, db DB, pattern string, verbose b
 	fmt.Println(sb.String())
 
 	rows, err := db.Query(ctx, sb.String(), args...)
-	if err != nil {
-		return nil, err
-	}
-
-	res := &Result{
-		Title:   "Default Privileges",
-		Rows:    rows,
-		Columns: rows.FieldDescriptions(),
-		Status:  "OKAY",
-	}
-	return res, nil
+	return rows, err
 }
 
-func ListTablespaces(ctx context.Context, db DB, pattern string, verbose bool) (*Result, error) {
+func ListTablespaces(ctx context.Context, db DB, pattern string, verbose bool) (pgx.Rows, error) {
 	var sb strings.Builder
 	args := []any{}
 	argIndex := 1
@@ -400,21 +352,11 @@ func ListTablespaces(ctx context.Context, db DB, pattern string, verbose bool) (
 
 	sb.WriteString(" ORDER BY 1;")
 	rowsResult, err := db.Query(ctx, sb.String(), args...)
-	if err != nil {
-		return nil, err
-	}
-
-	res := &Result{
-		Title:   "TABLESPACES",
-		Rows:    rowsResult,
-		Columns: rowsResult.FieldDescriptions(),
-		Status:  "OKAY",
-	}
-	return res, nil
+	return rowsResult, err
 
 }
 
-func ListObjects(ctx context.Context, db DB, pattern string, verbose bool, relkinds []string) (*Result, error) {
+func ListObjects(ctx context.Context, db DB, pattern string, verbose bool, relkinds []string) (pgx.Rows, error) {
 	var sb strings.Builder
 	args := []any{}
 	argIndex := 1
@@ -471,20 +413,10 @@ func ListObjects(ctx context.Context, db DB, pattern string, verbose bool, relki
 	sb.WriteString("ORDER BY 1, 2;")
 
 	rows, err := db.Query(ctx, sb.String(), args...)
-	if err != nil {
-		return nil, err
-	}
-
-	res := &Result{
-		Title:   "Objects",
-		Rows:    rows,
-		Columns: rows.FieldDescriptions(),
-		Status:  "OKAY",
-	}
-	return res, nil
+	return rows, err
 }
 
-func ListFunctions(ctx context.Context, db DB, pattern string, verbose bool) (*Result, error) {
+func ListFunctions(ctx context.Context, db DB, pattern string, verbose bool) (pgx.Rows, error) {
 	var sb strings.Builder
 	args := []any{}
 	argIndex := 1
@@ -560,20 +492,10 @@ func ListFunctions(ctx context.Context, db DB, pattern string, verbose bool) (*R
 	sb.WriteString(" ORDER BY 1, 2, 4;")
 
 	rows, err := db.Query(ctx, sb.String(), args...)
-	if err != nil {
-		return nil, err
-	}
-
-	res := &Result{
-		Title:   "Objects",
-		Rows:    rows,
-		Columns: rows.FieldDescriptions(),
-		Status:  "OKAY",
-	}
-	return res, nil
+	return rows, err
 }
 
-func ListDatatypes(ctx context.Context, db DB, pattern string, verbose bool) (*Result, error) {
+func ListDatatypes(ctx context.Context, db DB, pattern string, verbose bool) (pgx.Rows, error) {
 	var sb strings.Builder
 	args := []any{}
 	argIndex := 1
@@ -644,19 +566,11 @@ WHERE (t.typrelid = 0 OR
 	sb.WriteString("ORDER BY 1, 2;")
 
 	rows, err := db.Query(ctx, sb.String(), args...)
-	if err != nil {
-		return nil, err
-	}
 
-	return &Result{
-		Title:   "Data Types",
-		Rows:    rows,
-		Columns: rows.FieldDescriptions(),
-		Status:  "OKAY",
-	}, nil
+	return rows, err
 }
 
-func ListForeignTables(ctx context.Context, db DB, pattern string, verbose bool) (*Result, error) {
+func ListForeignTables(ctx context.Context, db DB, pattern string, verbose bool) (pgx.Rows, error) {
 	var sb strings.Builder
 	args := []any{}
 	argIndex := 1
@@ -705,14 +619,5 @@ WHERE c.relkind IN ('f','')
 	sb.WriteString("ORDER BY 1,2;")
 
 	rows, err := db.Query(ctx, sb.String(), args...)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Result{
-		Title:   "Objects",
-		Rows:    rows,
-		Columns: rows.FieldDescriptions(),
-		Status:  "OKAY",
-	}, nil
+	return rows, err
 }
