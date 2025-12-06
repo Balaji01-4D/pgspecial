@@ -483,3 +483,236 @@ func ListObjects(ctx context.Context, db DB, pattern string, verbose bool, relki
 	}
 	return res, nil
 }
+
+func ListFunctions(ctx context.Context, db DB, pattern string, verbose bool) (*Result, error) {
+	var sb strings.Builder
+	args := []any{}
+	argIndex := 1
+
+	sb.WriteString(`
+	            SELECT  n.nspname as schema,
+                    p.proname as name,
+                    pg_catalog.pg_get_function_result(p.oid)
+                      as "Result data type",
+                    pg_catalog.pg_get_function_arguments(p.oid)
+                      as "Argument data types",
+                     CASE
+                        WHEN p.prokind = 'a' THEN 'agg'
+                        WHEN p.prokind = 'w' THEN 'window'
+                        WHEN p.prorettype = 'pg_catalog.trigger'::pg_catalog.regtype
+                            THEN 'trigger'
+                        ELSE 'normal'
+                    END as type 
+	`)
+
+	if verbose {
+		sb.WriteString(`
+		 ,CASE
+                 WHEN p.provolatile = 'i' THEN 'immutable'
+                 WHEN p.provolatile = 's' THEN 'stable'
+                 WHEN p.provolatile = 'v' THEN 'volatile'
+            END as "Volatility",
+            pg_catalog.pg_get_userbyid(p.proowner) as owner,
+          l.lanname as "Language",
+          p.prosrc as "Source code",
+          pg_catalog.obj_description(p.oid, 'pg_proc') as description 
+		`)
+	}
+
+	sb.WriteString(`
+	   FROM    pg_catalog.pg_proc p
+            LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+	`)
+
+	if verbose {
+		sb.WriteString(`
+		LEFT JOIN pg_catalog.pg_language l
+			ON l.oid = p.prolang
+		`)
+	}
+
+	sb.WriteString(`
+	 WHERE  
+	`)
+
+	schemaPattern, funcPattern := sqlNamePattern(pattern)
+
+	if schemaPattern != "" {
+		sb.WriteString("  n.nspname ~ $" + strconv.Itoa(argIndex) + " ")
+		args = append(args, schemaPattern)
+		argIndex++
+	} else {
+		sb.WriteString(" pg_catalog.pg_function_is_visible(p.oid) ")
+	}
+
+	if funcPattern != "" {
+		sb.WriteString(" AND p.proname ~ $" + strconv.Itoa(argIndex) + " ")
+		args = append(args, funcPattern)
+	}
+
+	if !(schemaPattern != "" || funcPattern != "") {
+		sb.WriteString(`
+		AND n.nspname <> 'pg_catalog'
+		AND n.nspname <> 'information_schema' 	
+		`)
+	}
+
+	sb.WriteString(" ORDER BY 1, 2, 4;")
+
+	rows, err := db.Query(ctx, sb.String(), args...)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &Result{
+		Title:   "Objects",
+		Rows:    rows,
+		Columns: rows.FieldDescriptions(),
+		Status:  "OKAY",
+	}
+	return res, nil
+}
+
+func ListDatatypes(ctx context.Context, db DB, pattern string, verbose bool) (*Result, error) {
+	var sb strings.Builder
+	args := []any{}
+	argIndex := 1
+
+	sb.WriteString(`
+SELECT n.nspname AS schema,
+       pg_catalog.format_type(t.oid, NULL) AS name,
+`)
+
+	if verbose {
+		sb.WriteString(`
+       t.typname AS internal_name,
+       CASE
+           WHEN t.typrelid != 0 THEN 'tuple'
+           WHEN t.typlen < 0 THEN 'var'
+           ELSE t.typlen::text
+       END AS size,
+       pg_catalog.array_to_string(
+           ARRAY(
+               SELECT e.enumlabel
+               FROM pg_catalog.pg_enum e
+               WHERE e.enumtypid = t.oid
+               ORDER BY e.enumsortorder
+           ), E'\n') AS elements,
+       pg_catalog.array_to_string(t.typacl, E'\n') AS access_privileges,
+       pg_catalog.obj_description(t.oid, 'pg_type') AS description
+`)
+	} else {
+		sb.WriteString(`
+       pg_catalog.obj_description(t.oid, 'pg_type') AS description
+`)
+	}
+
+	sb.WriteString(`
+FROM pg_catalog.pg_type t
+LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
+WHERE (t.typrelid = 0 OR
+      (SELECT c.relkind='c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid))
+  AND NOT EXISTS(
+      SELECT 1 FROM pg_catalog.pg_type el
+      WHERE el.oid = t.typelem AND el.typarray = t.oid
+  )
+`)
+
+	schemaPattern, typePattern := sqlNamePattern(pattern)
+
+	if schemaPattern != "" {
+		sb.WriteString("  AND n.nspname ~ $" + strconv.Itoa(argIndex) + "\n")
+		args = append(args, schemaPattern)
+		argIndex++
+	} else {
+		sb.WriteString("  AND pg_catalog.pg_type_is_visible(t.oid)\n")
+	}
+
+	if typePattern != "" {
+		sb.WriteString("  AND (t.typname ~ $" + strconv.Itoa(argIndex) +
+			" OR pg_catalog.format_type(t.oid, NULL) ~ $" + strconv.Itoa(argIndex) + ")\n")
+		args = append(args, typePattern)
+	}
+
+	if schemaPattern == "" && typePattern == "" {
+		sb.WriteString(`
+  AND n.nspname <> 'pg_catalog'
+  AND n.nspname <> 'information_schema'
+`)
+	}
+
+	sb.WriteString("ORDER BY 1, 2;")
+
+	rows, err := db.Query(ctx, sb.String(), args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Result{
+		Title:   "Data Types",
+		Rows:    rows,
+		Columns: rows.FieldDescriptions(),
+		Status:  "OKAY",
+	}, nil
+}
+
+func ListForeignTables(ctx context.Context, db DB, pattern string, verbose bool) (*Result, error) {
+	var sb strings.Builder
+	args := []any{}
+	argIndex := 1
+
+	sb.WriteString(`
+SELECT 
+    n.nspname AS schema,
+    c.relname AS name,
+    CASE c.relkind 
+        WHEN 'r' THEN 'table'
+        WHEN 'v' THEN 'view'
+        WHEN 'm' THEN 'materialized view'
+        WHEN 'i' THEN 'index'
+        WHEN 'S' THEN 'sequence'
+        WHEN 's' THEN 'special'
+        WHEN 'f' THEN 'foreign table'
+        WHEN 'p' THEN 'table'
+        WHEN 'I' THEN 'index'
+    END AS type,
+    pg_catalog.pg_get_userbyid(c.relowner) AS owner
+`)
+
+	if verbose {
+		sb.WriteString(`
+  , pg_catalog.pg_size_pretty(pg_catalog.pg_table_size(c.oid)) AS size
+  , pg_catalog.obj_description(c.oid, 'pg_class') AS description
+`)
+	}
+
+	sb.WriteString(`
+FROM pg_catalog.pg_class c
+LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+WHERE c.relkind IN ('f','')
+  AND n.nspname <> 'pg_catalog'
+  AND n.nspname <> 'information_schema'
+  AND n.nspname !~ '^pg_toast'
+  AND pg_catalog.pg_table_is_visible(c.oid)
+`)
+
+	if pattern != "" {
+		_, tblPattern := sqlNamePattern(pattern)
+		sb.WriteString("  AND c.relname OPERATOR(pg_catalog.~) $" + strconv.Itoa(argIndex) + "\n")
+		args = append(args, tblPattern)
+	}
+
+	sb.WriteString("ORDER BY 1,2;")
+
+	rows, err := db.Query(ctx, sb.String(), args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Result{
+		Title:   "Objects",
+		Rows:    rows,
+		Columns: rows.FieldDescriptions(),
+		Status:  "OKAY",
+	}, nil
+}
