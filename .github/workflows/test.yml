@@ -22,7 +22,7 @@ jobs:
           --health-retries=5
 
     env:
-      PGSPECIAL_TEST_DSN: postgres://postgres:postgres@localhost:5432/testdb?sslmode=disable
+      PGXSPECIAL_TEST_DSN: postgres://postgres:postgres@localhost:5432/testdb?sslmode=disable
 
     steps:
       - name: Checkout
