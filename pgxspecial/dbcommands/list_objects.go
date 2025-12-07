@@ -5,14 +5,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/balaji01-4d/pgxspecial/pgspecial"
-	"github.com/balaji01-4d/pgxspecial/pgspecial/database"
+	"github.com/balaji01-4d/pgxspecial/pgxspecial"
+	"github.com/balaji01-4d/pgxspecial/pgxspecial/database"
 	"github.com/jackc/pgx/v5"
 )
 
 func init() {
 	// \dt
-	pgspecial.RegisterCommand(pgspecial.SpecialCommandRegistry{
+	pgxspecial.RegisterCommand(pgxspecial.SpecialCommandRegistry{
 		Cmd:         "\\dt",
 		Description: "List tables.",
 		Syntax:      "\\dt[+] [pattern]",
@@ -23,7 +23,7 @@ func init() {
 	})
 
 	// \dv
-	pgspecial.RegisterCommand(pgspecial.SpecialCommandRegistry{
+	pgxspecial.RegisterCommand(pgxspecial.SpecialCommandRegistry{
 		Cmd:         "\\dv",
 		Description: "List views.",
 		Syntax:      "\\dv[+] [pattern]",
@@ -34,7 +34,7 @@ func init() {
 	})
 
 	// \dm
-	pgspecial.RegisterCommand(pgspecial.SpecialCommandRegistry{
+	pgxspecial.RegisterCommand(pgxspecial.SpecialCommandRegistry{
 		Cmd:         "\\dm",
 		Description: "List materialized views.",
 		Syntax:      "\\dm[+] [pattern]",
@@ -45,7 +45,7 @@ func init() {
 	})
 
 	// \ds
-	pgspecial.RegisterCommand(pgspecial.SpecialCommandRegistry{
+	pgxspecial.RegisterCommand(pgxspecial.SpecialCommandRegistry{
 		Cmd:         "\\ds",
 		Description: "List sequences.",
 		Syntax:      "\\ds[+] [pattern]",
@@ -56,7 +56,7 @@ func init() {
 	})
 
 	// \di
-	pgspecial.RegisterCommand(pgspecial.SpecialCommandRegistry{
+	pgxspecial.RegisterCommand(pgxspecial.SpecialCommandRegistry{
 		Cmd:         "\\di",
 		Description: "List indexes.",
 		Syntax:      "\\di[+] [pattern]",

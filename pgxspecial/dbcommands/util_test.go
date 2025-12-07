@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/balaji01-4d/pgxspecial/pgspecial/database"
+	"github.com/balaji01-4d/pgxspecial/pgxspecial/database"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,7 +16,7 @@ import (
 func connectTestDB(t *testing.T) database.DB {
 	t.Helper()
 	ctx := context.Background()
-	db_url := os.Getenv("PGSPECIAL_TEST_DSN")
+	db_url := os.Getenv("PGXSPECIAL_TEST_DSN")
 	db, err := pgxpool.New(ctx, db_url)
 
 	if err != nil {

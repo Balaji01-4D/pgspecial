@@ -6,13 +6,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/balaji01-4d/pgxspecial/pgspecial"
-	"github.com/balaji01-4d/pgxspecial/pgspecial/database"
+	"github.com/balaji01-4d/pgxspecial/pgxspecial"
+	"github.com/balaji01-4d/pgxspecial/pgxspecial/database"
 	"github.com/jackc/pgx/v5"
 )
 
 func init() {
-	pgspecial.RegisterCommand(pgspecial.SpecialCommandRegistry{
+	pgxspecial.RegisterCommand(pgxspecial.SpecialCommandRegistry{
 		Cmd:         "\\d",
 		Description: "List or describe tables, views and sequences.",
 		Syntax:      "\\d[+] [pattern]",
@@ -29,7 +29,7 @@ func init() {
 		CaseSensitive: true,
 	})
 
-	pgspecial.RegisterCommand(pgspecial.SpecialCommandRegistry{
+	pgxspecial.RegisterCommand(pgxspecial.SpecialCommandRegistry{
 		Cmd:         "DESCRIBE",
 		Description: "",
 		Syntax:      "DESCRIBE [pattern]",

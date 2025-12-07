@@ -1,11 +1,11 @@
-package pgspecial
+package pgxspecial
 
 import (
 	"context"
 	"fmt"
 	"strings"
 
-	"github.com/balaji01-4d/pgxspecial/pgspecial/database"
+	"github.com/balaji01-4d/pgxspecial/pgxspecial/database"
 	"github.com/jackc/pgx/v5"
 )
 

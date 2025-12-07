@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/balaji01-4d/pgxspecial/pgspecial"
-	"github.com/balaji01-4d/pgxspecial/pgspecial/database"
+	"github.com/balaji01-4d/pgxspecial/pgxspecial"
+	"github.com/balaji01-4d/pgxspecial/pgxspecial/database"
 	"github.com/jackc/pgx/v5"
 )
 
 func init() {
-	pgspecial.RegisterCommand(pgspecial.SpecialCommandRegistry{
+	pgxspecial.RegisterCommand(pgxspecial.SpecialCommandRegistry{
 		Cmd:           "\\ddp",
 		Description:   "Lists default access privilege settings.",
 		Syntax:        "\\ddp [pattern]",
