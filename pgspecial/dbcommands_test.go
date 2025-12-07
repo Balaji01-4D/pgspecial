@@ -224,6 +224,41 @@ func DropSchema(
 	}
 }
 
+func GrantPrivilege(
+	t *testing.T,
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	privilege string,
+	object string,
+	role string,
+) {
+	t.Helper()
+
+	sql := `GRANT ` + privilege + ` ON ` + object + ` TO ` + role
+
+	if _, err := pool.Exec(ctx, sql); err != nil {
+		t.Fatalf("grant privilege failed: %v", err)
+	}
+}
+
+func RevokePrivilege(
+	t *testing.T,
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	privilege string,
+	object string,
+	role string,
+) {
+	t.Helper()
+
+	sql := `REVOKE ` + privilege + ` ON ` + object + ` FROM ` + role
+
+	if _, err := pool.Exec(ctx, sql); err != nil {
+		t.Fatalf("revoke privilege failed: %v", err)
+	}
+}
+
+
 func RowsToMaps(rows pgx.Rows) ([]map[string]interface{}, error) {
 	cols := rows.FieldDescriptions()
 	colCount := len(cols)
@@ -1829,6 +1864,16 @@ func TestListPrivileges(t *testing.T) {
 	defer db.(*pgxpool.Pool).Close()
 
 	pattern := ""
+	pool := db.(*pgxpool.Pool)
+	ctx := context.Background()
+
+	db.Exec(ctx, "CREATE TABLE test_tbl (id int)")
+	db.Exec(ctx, "CREATE ROLE app_user")
+
+	GrantPrivilege(t, ctx, pool, "SELECT", "test_tbl", "app_user")
+	t.Cleanup(func() {
+		RevokePrivilege(t, ctx, pool, "SELECT", "test_tbl", "app_user")
+	})
 
 	result, err := pgspecial.ListPrivileges(context.Background(), db, pattern, false)
 	if err != nil {
@@ -1870,7 +1915,7 @@ func TestListDefaultPrivileges(t *testing.T) {
 		t.Fatalf("Failed to create role: %v", err)
 	}
 	defer db.Exec(context.Background(), "DROP ROLE IF EXISTS app_user")
-	
+
 	CreateDefaultPrivileges(t, context.Background(), db.(*pgxpool.Pool), "app_user")
 	defer DropDefaultPrivileges(t, context.Background(), db.(*pgxpool.Pool), "app_user")
 	result, err := pgspecial.ListDefaultPrivileges(context.Background(), db, pattern, false)
