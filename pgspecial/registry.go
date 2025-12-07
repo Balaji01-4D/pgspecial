@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/balaji01-4d/pgspecial/pgspecial/database"
 	"github.com/jackc/pgx/v5"
 )
 
-type SpecialHandler func(ctx context.Context, db DB, args string, verbose bool) (pgx.Rows, error)
+type SpecialHandler func(ctx context.Context, db database.DB, args string, verbose bool) (pgx.Rows, error)
 
 var command_map = map[string]SpecialCommand{}
 
@@ -37,8 +38,7 @@ func RegisterCommand(cmdRegistry SpecialCommandRegistry) {
 
 }
 
-
-func ExecuteSpecialCommand(ctx context.Context, db DB, input string) (pgx.Rows, bool, error) {
+func ExecuteSpecialCommand(ctx context.Context, db database.DB, input string) (pgx.Rows, bool, error) {
 	if !strings.HasPrefix(input, "\\") {
 		return nil, false, nil
 	}
