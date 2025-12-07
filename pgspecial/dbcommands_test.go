@@ -1868,12 +1868,10 @@ func TestListPrivileges(t *testing.T) {
 	ctx := context.Background()
 
 	db.Exec(ctx, "CREATE TABLE test_tbl (id int)")
-	db.Exec(ctx, "CREATE ROLE app_user")
+	db.Exec(ctx, "CREATE ROLE test_user")
 
-	GrantPrivilege(t, ctx, pool, "SELECT", "test_tbl", "app_user")
-	t.Cleanup(func() {
-		RevokePrivilege(t, ctx, pool, "SELECT", "test_tbl", "app_user")
-	})
+	GrantPrivilege(t, ctx, pool, "SELECT", "test_tbl", "test_user")
+	defer RevokePrivilege(t, ctx, pool, "SELECT", "test_tbl", "test_user")
 
 	result, err := pgspecial.ListPrivileges(context.Background(), db, pattern, false)
 	if err != nil {
