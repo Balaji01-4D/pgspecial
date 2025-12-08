@@ -60,7 +60,6 @@ func main() {
 | `\dD`             | List all domains                               |
 | `\dE`             | List all foreign tables                        |
 | `\df`             | List all functions                             |
-| `\do`             | List all operators                             |
 | `\dp`             | List table / view / sequence access privileges |
 | `\du`             | List all roles                                 |
 | `\dn`             | List all schemas                               |
