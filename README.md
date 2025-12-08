@@ -16,7 +16,7 @@ This library allows you to programmatically access structured data for various d
 To use `pgxspecial` in your project, you can use `go get`:
 
 ```sh
-go get github.com/balaji01-4d/pgxspecial/pgxspecial
+go get github.com/balaji01-4d/pgxspecial
 ```
 
 ## Usage
@@ -32,7 +32,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/balaji01-4d/pgxspecial/pgxspecial"
+	"github.com/balaji01-4d/pgxspecial"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 

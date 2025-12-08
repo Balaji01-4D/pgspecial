@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/balaji01-4d/pgxspecial/pgxspecial/dbcommands"
+	"github.com/balaji01-4d/pgxspecial/dbcommands"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 )
