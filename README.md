@@ -1,97 +1,96 @@
-# pgxspecial (NOT PUBLISHED YET)
+# pgxspecial
 
-`pgxspecial` is a Go package that provides an API to execute meta-commands (also known as "special" or "backslash commands") on PostgreSQL, similar to the functionality found in tools like `psql`. It is inspired by the Python library [pgspecial](https://github.com/dbcli/pgspecial).
-
-This library allows you to programmatically access structured data for various database objects and server information.
+`pgxspecial` is a Go library that provides an API to execute PostgreSQL meta-commands (a.k.a. “special” or “backslash” commands), modeled on the behavior of tools like `psql` and inspired by the Python library [pgspecial](https://github.com/dbcli/pgspecial).
 
 ## Features
 
-*   Execute `psql`-like backslash commands from your Go application.
-*   Get structured data for tables, databases, roles, and more.
-*   Easy-to-use API that integrates with `pgx/v5`.
-*   Provides detailed metadata, such as indexes, constraints, and triggers for tables.
+- Execute `psql`-style backslash commands directly from Go code  
+- Get structured metadata about databases: tables, types, functions, schemas, roles — not just raw SQL results  
+- Works with `pgx/v5` and `pgxpool` (or any adapter implementing the included DB interface)  
+- Detailed introspection: types, indexes, tablespaces, privileges, and more  
 
 ## Installation
 
-To use `pgxspecial` in your project, you can use `go get`:
-
-```sh
+```bash
 go get github.com/balaji01-4d/pgxspecial
-```
+````
 
-## Usage
-
-Here is a minimal example of how to use `pgxspecial` to describe a table:
+## Basic Usage (Go API)
 
 ```go
-package main
-
 import (
-	"context"
-	"fmt"
-	"log"
-	"os"
+    "context"
+    "fmt"
+    "log"
 
-	"github.com/balaji01-4d/pgxspecial"
-	"github.com/jackc/pgx/v5/pgxpool"
+    "github.com/balaji01-4d/pgxspecial"
+    "github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
-	ctx := context.Background()
+    ctx := context.Background()
+    pool, err := pgxpool.New(ctx, "postgres://user:password@localhost:5432/database?sslmode=disable")
+    if err != nil {
+        log.Fatalf("Unable to connect: %v\n", err)
+    }
+    defer pool.Close()
 
-	// Replace with your database connection string
-	connStr := "postgres://user:password@localhost:5432/database?sslmode=disable"
-
-	pool, err := pgxpool.New(ctx, connStr)
-	if err != nil {
-		log.Fatalf("Unable to connect: %v\n", err)
-	}
-	defer pool.Close()
-
-	tableName := "public.my_table"
-
-	// Get detailed information about the table
-	results, err := pgxspecial.DescribeTableDetails(ctx, pool, tableName, true)
-	if err != nil {
-		log.Fatalf("DescribeTableDetails error: %v", err)
-	}
-
-    // The result contains detailed information about the table,
-    // including columns, indexes, constraints, triggers, and more.
-	// For simplicity, we'll just print the column headers.
-	if len(results) > 0 {
-		fmt.Println("Columns:")
-		for _, col := range results[0].Columns {
-			fmt.Printf("- %s\n", col)
-		}
-	}
+    // Example: list all databases
+    res, isSpecial, err := pgxspecial.ExecuteSpecialCommand(ctx, pool, "\\l")
+    if err != nil {
+        log.Fatalf("Special command error: %v\n", err)
+    }
+    if isSpecial {
+        fmt.Println("Databases:")
+        for _, row := range res.Rows {
+            fmt.Println(row)
+        }
+    }
 }
 ```
 
-The `DescribeTableDetails` function returns a slice of `pgxspecial.DescribeTableResult`, which contains not only the columns and their types but also detailed metadata about the table.
-
 ## Supported Commands
 
-`pgxspecial` currently supports the following commands:
+| Command           | Description                                    |
+| ----------------- | ---------------------------------------------- |
+| `\l`              | List all databases                             |
+| `\d`		        | Describe table, view, sequence or index        |
+| `\dT`             | List all data types                            |
+| `\ddp`            | List default privileges                        |
+| `\dD`             | List all domains                               |
+| `\dE`             | List all foreign tables                        |
+| `\df`             | List all functions                             |
+| `\do`             | List all operators                             |
+| `\dp`             | List table / view / sequence access privileges |
+| `\du`             | List all roles                                 |
+| `\dn`             | List all schemas                               |
+| `\db`             | List all tablespaces                           |
+| `\sf`             | Show a function’s definition                   |
+| `\dx` | List installed extensions                      |
 
-*   `\d`: Describe table, view, sequence, or index.
-*   `\d+`: Describe table, view, sequence, or index (more details).
-*   `\l`: List all databases.
-*   `\dT`: List all data types.
-*   `\ddp`: List default privileges.
-*   `\dD`: List all domains.
-*   `\dE`: List all foreign tables.
-*   `\df`: List all functions.
-*   `\do`: List all operators.
-*   `\dp`: List table, view, and sequence access privileges.
-*   `\du`: List all roles.
-*   `\dn`: List all schemas.
-*   `\db`: List all tablespaces.
-*   `\sf`: Show a function's definition.
+> **Note:** Some commands, such as `\d` & `\dx`, are still in development and may not work yet.
+
+## Example: Describe a Table
+
+```go
+res, isSpecial, err := pgxspecial.ExecuteSpecialCommand(ctx, pool, "\\d public.my_table")
+if err != nil {
+    panic(err)
+}
+if isSpecial {
+    fmt.Println("Columns:")
+    for _, col := range res.Rows {
+        fmt.Printf("- %v\n", col)
+    }
+}
+```
+
+This returns structured metadata including column names, types, constraints, indexes, triggers, etc.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a pull request or open an issue for any bugs, feature requests, or suggestions.
+Contributions are welcome!
+Feel free to open issues or submit pull requests for bug fixes, new commands, improved tests, or documentation enhancements.
 
 ## License
 
