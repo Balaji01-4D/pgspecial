@@ -3,6 +3,7 @@ module github.com/balaji01-4d/pgxspecial
 go 1.25.4
 
 require (
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/stretchr/testify v1.11.1
 )
