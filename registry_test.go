@@ -10,7 +10,6 @@ import (
 	_ "github.com/balaji01-4d/pgxspecial/dbcommands" // to register commands
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +17,7 @@ func connectTestDB(t *testing.T) database.Queryer {
 	t.Helper()
 	ctx := context.Background()
 	db_url := os.Getenv("PGXSPECIAL_TEST_DSN")
-	db, err := pgxpool.New(ctx, db_url)
+	db, err := pgx.Connect(ctx, db_url)
 
 	if err != nil {
 		t.Fatalf("Failed to connect to database: %v", err)
@@ -107,7 +106,7 @@ func isValidListDatabasesResult(t *testing.T, testingResult pgx.Rows) {
 
 func TestExecuteSpecialCommandWithUnknownCommand(t *testing.T) {
 	db := connectTestDB(t)
-	defer db.Close()
+	defer db.(*pgx.Conn).Close(t.Context())
 	ctx := context.Background()
 
 	// Example test for an unknown command
@@ -119,7 +118,7 @@ func TestExecuteSpecialCommandWithUnknownCommand(t *testing.T) {
 
 func TestExecuteSpecialCommandWithKnownCommand(t *testing.T) {
 	db := connectTestDB(t)
-	defer db.Close()
+	defer db.(*pgx.Conn).Close(t.Context())
 	ctx := context.Background()
 
 	// Register a test command
@@ -144,7 +143,7 @@ func TestExecuteSpecialCommandWithKnownCommand(t *testing.T) {
 
 func TestExecuteCommand(t *testing.T) {
 	db := connectTestDB(t)
-	defer db.Close()
+	defer db.(*pgx.Conn).Close(t.Context())
 	ctx := context.Background()
 
 	// test for registered command
@@ -162,7 +161,7 @@ func TestExecuteCommand(t *testing.T) {
 
 func TestExecuteSpecialCommandNonSpecial(t *testing.T) {
 	db := connectTestDB(t)
-	defer db.Close()
+	defer db.(*pgx.Conn).Close(t.Context())
 	ctx := context.Background()
 
 	// Example test for a non-special command
@@ -177,7 +176,7 @@ func TestExecuteSpecialCommandNonSpecial(t *testing.T) {
 
 func TestRegisterCommandAlias(t *testing.T) {
 	db := connectTestDB(t)
-	defer db.Close()
+	defer db.(*pgx.Conn).Close(t.Context())
 	ctx := context.Background()
 
 	rows, isSpecial, err := pgxspecial.ExecuteSpecialCommand(ctx, db, "\\list")
