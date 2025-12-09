@@ -20,7 +20,7 @@ func init() {
 	})
 }
 
-func ShowFunctionDefinition(ctx context.Context, db database.DB, pattern string, verbose bool) (pgx.Rows, error) {
+func ShowFunctionDefinition(ctx context.Context, db database.Queryer, pattern string, verbose bool) (pgx.Rows, error) {
 	var sql string
 	if strings.Contains(pattern, "(") {
 		sql = "SELECT $1::pg_catalog.regprocedure::pg_catalog.oid"

@@ -10,8 +10,11 @@ import (
 )
 
 func TestListDefaultPrivileges(t *testing.T) {
-	db := connectTestDB(t)
-	defer db.(*pgxpool.Pool).Close()
+	queryer := connectTestDB(t)
+	db := queryer.(*pgxpool.Pool)
+	
+	defer db.Close()
+
 
 	pattern := ""
 
@@ -21,8 +24,8 @@ func TestListDefaultPrivileges(t *testing.T) {
 	}
 	defer db.Exec(context.Background(), "DROP ROLE IF EXISTS app_user")
 
-	CreateDefaultPrivileges(t, context.Background(), db.(*pgxpool.Pool), "app_user")
-	defer DropDefaultPrivileges(t, context.Background(), db.(*pgxpool.Pool), "app_user")
+	CreateDefaultPrivileges(t, context.Background(), db, "app_user")
+	defer DropDefaultPrivileges(t, context.Background(), db, "app_user")
 	result, err := dbcommands.ListDefaultPrivileges(context.Background(), db, pattern, false)
 	if err != nil {
 		t.Fatalf("ListDefaultPrivileges failed: %v", err)

@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type SpecialHandler func(ctx context.Context, db database.DB, args string, verbose bool) (pgx.Rows, error)
+type SpecialHandler func(ctx context.Context, db database.Queryer, args string, verbose bool) (pgx.Rows, error)
 
 var commandRegistry = map[string]SpecialCommand{}
 
@@ -38,7 +38,7 @@ func RegisterCommand(cmdRegistry SpecialCommandRegistry) {
 
 }
 
-func ExecuteSpecialCommand(ctx context.Context, db database.DB, input string) (pgx.Rows, bool, error) {
+func ExecuteSpecialCommand(ctx context.Context, db database.Queryer, input string) (pgx.Rows, bool, error) {
 	if !strings.HasPrefix(input, "\\") {
 		return nil, false, nil
 	}

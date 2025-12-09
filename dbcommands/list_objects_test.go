@@ -10,8 +10,9 @@ import (
 )
 
 func TestListObjects(t *testing.T) {
-	db := connectTestDB(t)
-	defer db.(*pgxpool.Pool).Close()
+	db := connectTestDB(t).(*pgxpool.Pool)
+	
+	defer db.Close()
 
 	// Ensure we have at least one table
 	ctx := context.Background()

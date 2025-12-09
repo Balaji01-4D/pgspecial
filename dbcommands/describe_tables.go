@@ -16,7 +16,7 @@ func init() {
 		Cmd:         "\\d",
 		Description: "List or describe tables, views and sequences.",
 		Syntax:      "\\d[+] [pattern]",
-		Handler: func(ctx context.Context, db database.DB, pattern string, verbose bool) (pgx.Rows, error) {
+		Handler: func(ctx context.Context, db database.Queryer, pattern string, verbose bool) (pgx.Rows, error) {
 			rowsList, err := DescribeTableDetails(ctx, db, pattern, verbose)
 			if err != nil {
 				return nil, err
@@ -33,7 +33,7 @@ func init() {
 		Cmd:         "DESCRIBE",
 		Description: "",
 		Syntax:      "DESCRIBE [pattern]",
-		Handler: func(ctx context.Context, db database.DB, pattern string, verbose bool) (pgx.Rows, error) {
+		Handler: func(ctx context.Context, db database.Queryer, pattern string, verbose bool) (pgx.Rows, error) {
 			rowsList, err := DescribeTableDetails(ctx, db, pattern, verbose)
 			if err != nil {
 				return nil, err
@@ -47,7 +47,7 @@ func init() {
 	})
 }
 
-func DescribeTableDetails(ctx context.Context, db database.DB, pattern string, verbose bool) ([]pgx.Rows, error) {
+func DescribeTableDetails(ctx context.Context, db database.Queryer, pattern string, verbose bool) ([]pgx.Rows, error) {
 	if pattern == "" {
 		rows, err := ListObjects(ctx, db, pattern, verbose, []string{"r", "p", "v", "m", "S", "f", ""})
 		if err != nil {
@@ -121,7 +121,7 @@ func DescribeTableDetails(ctx context.Context, db database.DB, pattern string, v
 	return results, nil
 }
 
-func DescribeOneTableDetails(ctx context.Context, db database.DB, schemaName, relationName string, oid uint32, verbose bool) (pgx.Rows, error) {
+func DescribeOneTableDetails(ctx context.Context, db database.Queryer, schemaName, relationName string, oid uint32, verbose bool) (pgx.Rows, error) {
 	var relKind string
 	err := db.QueryRow(ctx, "SELECT relkind::text FROM pg_catalog.pg_class WHERE oid = $1", oid).Scan(&relKind)
 	if err != nil {

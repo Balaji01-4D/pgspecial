@@ -16,7 +16,7 @@ func init() {
 		Cmd:         "\\dt",
 		Description: "List tables.",
 		Syntax:      "\\dt[+] [pattern]",
-		Handler: func(ctx context.Context, db database.DB, pattern string, verbose bool) (pgx.Rows, error) {
+		Handler: func(ctx context.Context, db database.Queryer, pattern string, verbose bool) (pgx.Rows, error) {
 			return ListObjects(ctx, db, pattern, verbose, []string{"r", "p", ""})
 		},
 		CaseSensitive: true,
@@ -27,7 +27,7 @@ func init() {
 		Cmd:         "\\dv",
 		Description: "List views.",
 		Syntax:      "\\dv[+] [pattern]",
-		Handler: func(ctx context.Context, db database.DB, pattern string, verbose bool) (pgx.Rows, error) {
+		Handler: func(ctx context.Context, db database.Queryer, pattern string, verbose bool) (pgx.Rows, error) {
 			return ListObjects(ctx, db, pattern, verbose, []string{"v", "s", ""})
 		},
 		CaseSensitive: true,
@@ -38,7 +38,7 @@ func init() {
 		Cmd:         "\\dm",
 		Description: "List materialized views.",
 		Syntax:      "\\dm[+] [pattern]",
-		Handler: func(ctx context.Context, db database.DB, pattern string, verbose bool) (pgx.Rows, error) {
+		Handler: func(ctx context.Context, db database.Queryer, pattern string, verbose bool) (pgx.Rows, error) {
 			return ListObjects(ctx, db, pattern, verbose, []string{"m", "s", ""})
 		},
 		CaseSensitive: true,
@@ -49,7 +49,7 @@ func init() {
 		Cmd:         "\\ds",
 		Description: "List sequences.",
 		Syntax:      "\\ds[+] [pattern]",
-		Handler: func(ctx context.Context, db database.DB, pattern string, verbose bool) (pgx.Rows, error) {
+		Handler: func(ctx context.Context, db database.Queryer, pattern string, verbose bool) (pgx.Rows, error) {
 			return ListObjects(ctx, db, pattern, verbose, []string{"S", "s", ""})
 		},
 		CaseSensitive: true,
@@ -60,14 +60,14 @@ func init() {
 		Cmd:         "\\di",
 		Description: "List indexes.",
 		Syntax:      "\\di[+] [pattern]",
-		Handler: func(ctx context.Context, db database.DB, pattern string, verbose bool) (pgx.Rows, error) {
+		Handler: func(ctx context.Context, db database.Queryer, pattern string, verbose bool) (pgx.Rows, error) {
 			return ListObjects(ctx, db, pattern, verbose, []string{"i", "s", ""})
 		},
 		CaseSensitive: true,
 	})
 }
 
-func ListObjects(ctx context.Context, db database.DB, pattern string, verbose bool, relkinds []string) (pgx.Rows, error) {
+func ListObjects(ctx context.Context, db database.Queryer, pattern string, verbose bool, relkinds []string) (pgx.Rows, error) {
 	var sb strings.Builder
 	args := []any{}
 	argIndex := 1

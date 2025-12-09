@@ -20,7 +20,7 @@ func init() {
 	})
 }
 
-func ListForeignTables(ctx context.Context, db database.DB, pattern string, verbose bool) (pgx.Rows, error) {
+func ListForeignTables(ctx context.Context, db database.Queryer, pattern string, verbose bool) (pgx.Rows, error) {
 	var sb strings.Builder
 	args := []any{}
 	argIndex := 1

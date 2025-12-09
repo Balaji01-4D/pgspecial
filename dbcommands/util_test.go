@@ -13,7 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func connectTestDB(t *testing.T) database.DB {
+func connectTestDB(t *testing.T) database.Queryer {
 	t.Helper()
 	ctx := context.Background()
 	db_url := os.Getenv("PGXSPECIAL_TEST_DSN")

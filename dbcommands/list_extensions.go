@@ -12,16 +12,16 @@ import (
 
 func init() {
 	pgxspecial.RegisterCommand(pgxspecial.SpecialCommandRegistry{
-		Cmd:         "\\dx",
-		Description: "List extensions.",
-		Syntax:      "\\dx[+] [pattern]",
-		Handler:     ListExtensions,
+		Cmd:           "\\dx",
+		Description:   "List extensions.",
+		Syntax:        "\\dx[+] [pattern]",
+		Handler:       ListExtensions,
 		CaseSensitive: true,
 	})
 }
 
 // verbose is ignored for now
-func ListExtensions(ctx context.Context, db database.DB, pattern string, verbose bool) (pgx.Rows, error) {
+func ListExtensions(ctx context.Context, db database.Queryer, pattern string, verbose bool) (pgx.Rows, error) {
 	var sb strings.Builder
 	args := []any{}
 	argIndex := 1
@@ -44,15 +44,14 @@ func ListExtensions(ctx context.Context, db database.DB, pattern string, verbose
 		sb.WriteString(" WHERE e.extname ~ $" + strconv.Itoa(argIndex) + " ")
 		args = append(args, tablePattern)
 	}
-	
+
 	sb.WriteString(" ORDER BY 1, 2;")
 	rows, err := db.Query(ctx, sb.String(), args...)
 	return rows, err
 }
 
-
 // it is not used currently but may be useful in future implementations
-func findExtension(ctx context.Context, db database.DB, extName string) (pgx.Rows, error) {
+func findExtension(ctx context.Context, db database.Queryer, extName string) (pgx.Rows, error) {
 	var sb strings.Builder
 
 	sb.WriteString(`
@@ -71,7 +70,7 @@ func findExtension(ctx context.Context, db database.DB, extName string) (pgx.Row
 }
 
 // it is not used currently but may be useful in future implementations
-func describeExtension(ctx context.Context, db database.DB, oid uint32) (pgx.Rows, error) {
+func describeExtension(ctx context.Context, db database.Queryer, oid uint32) (pgx.Rows, error) {
 	var sb strings.Builder
 
 	sb.WriteString(`
@@ -83,7 +82,7 @@ func describeExtension(ctx context.Context, db database.DB, oid uint32) (pgx.Row
                     AND deptype = 'e'
             ORDER BY 1;
 	`)
-	
+
 	rows, err := db.Query(ctx, sb.String(), oid)
 	return rows, err
 }

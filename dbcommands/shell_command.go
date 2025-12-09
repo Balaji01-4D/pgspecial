@@ -13,15 +13,15 @@ import (
 
 func init() {
 	pgxspecial.RegisterCommand(pgxspecial.SpecialCommandRegistry{
-		Cmd:         "\\!",
-		Description: "Execute a shell command.",
-		Syntax:      "\\! command",
-		Handler:     ShellCommand,
+		Cmd:           "\\!",
+		Description:   "Execute a shell command.",
+		Syntax:        "\\! command",
+		Handler:       ShellCommand,
 		CaseSensitive: true,
 	})
 }
 
-func ShellCommand(ctx context.Context, db database.DB, args string, verbose bool) (pgx.Rows, error) {
+func ShellCommand(ctx context.Context, db database.Queryer, args string, verbose bool) (pgx.Rows, error) {
 	parts, err := shlex.Split(args)
 	if err != nil {
 		return nil, err

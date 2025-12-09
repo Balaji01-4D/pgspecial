@@ -10,11 +10,11 @@ import (
 )
 
 func TestListPrivileges(t *testing.T) {
-	db := connectTestDB(t)
-	defer db.(*pgxpool.Pool).Close()
+	db := connectTestDB(t).(*pgxpool.Pool)
+	defer db.Close()
 
 	pattern := ""
-	pool := db.(*pgxpool.Pool)
+	pool := db
 	ctx := context.Background()
 
 	db.Exec(ctx, "CREATE TABLE test_tbl (id int)")

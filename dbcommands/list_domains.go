@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func ListDomains(ctx context.Context, db database.DB, pattern string, verbose bool) (pgx.Rows, error) {
+func ListDomains(ctx context.Context, db database.Queryer, pattern string, verbose bool) (pgx.Rows, error) {
 	var sb strings.Builder
 	args := []any{}
 	argIndex := 1

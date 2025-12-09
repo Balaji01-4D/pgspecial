@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func connectTestDB(t *testing.T) database.DB {
+func connectTestDB(t *testing.T) database.Queryer {
 	t.Helper()
 	ctx := context.Background()
 	db_url := os.Getenv("PGXSPECIAL_TEST_DSN")
@@ -105,7 +105,6 @@ func isValidListDatabasesResult(t *testing.T, testingResult pgx.Rows) {
 	assert.True(t, containsByField(allRows, "name", "postgres"))
 }
 
-
 func TestExecuteSpecialCommandWithUnknownCommand(t *testing.T) {
 	db := connectTestDB(t)
 	defer db.Close()
@@ -128,7 +127,7 @@ func TestExecuteSpecialCommandWithKnownCommand(t *testing.T) {
 		Cmd:         "\\testcmd",
 		Description: "A test command",
 		Syntax:      "\\testcmd [args]",
-		Handler: func(ctx context.Context, db database.DB, args string, verbose bool) (pgx.Rows, error) {
+		Handler: func(ctx context.Context, db database.Queryer, args string, verbose bool) (pgx.Rows, error) {
 			return nil, nil
 		},
 	})
@@ -142,7 +141,6 @@ func TestExecuteSpecialCommandWithKnownCommand(t *testing.T) {
 		t.Errorf("Expected isSpecial to be true for known command")
 	}
 }
-
 
 func TestExecuteCommand(t *testing.T) {
 	db := connectTestDB(t)
@@ -162,7 +160,6 @@ func TestExecuteCommand(t *testing.T) {
 	isValidListDatabasesResult(t, rows)
 }
 
-
 func TestExecuteSpecialCommandNonSpecial(t *testing.T) {
 	db := connectTestDB(t)
 	defer db.Close()
@@ -177,7 +174,6 @@ func TestExecuteSpecialCommandNonSpecial(t *testing.T) {
 		t.Errorf("Expected isSpecial to be false for non-special command")
 	}
 }
-
 
 func TestRegisterCommandAlias(t *testing.T) {
 	db := connectTestDB(t)

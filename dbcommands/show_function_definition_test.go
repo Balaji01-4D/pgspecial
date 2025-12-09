@@ -69,8 +69,8 @@ func TestShowFunctionDefinition(t *testing.T) {
 }
 
 func TestShowFunctionDefinitionVerbose(t *testing.T) {
-	db := connectTestDB(t)
-	defer db.(*pgxpool.Pool).Close()
+	db := connectTestDB(t).(*pgxpool.Pool)
+	defer db.Close()
 
 	ctx := context.Background()
 
