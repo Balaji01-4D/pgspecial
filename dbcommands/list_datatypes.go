@@ -14,7 +14,7 @@ func init() {
 	pgxspecial.RegisterCommand(pgxspecial.SpecialCommandRegistry{
 		Cmd:           "\\dT",
 		Description:   "List data types",
-		Syntax:        "\\dT[S+] [pattern]",
+		Syntax:        "\\dT[+] [pattern]",
 		Handler:       ListDatatypes,
 		CaseSensitive: true,
 	})
