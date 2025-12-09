@@ -79,7 +79,6 @@ func DescribeTableDetails(ctx context.Context, db database.Queryer, pattern stri
 	if relname != "" {
 		sb.WriteString(" AND c.relname OPERATOR(pg_catalog.~) $" + strconv.Itoa(argIndex))
 		args = append(args, relname)
-		argIndex++
 	}
 
 	sb.WriteString(" ORDER BY 2, 3")
