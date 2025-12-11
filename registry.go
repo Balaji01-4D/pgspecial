@@ -60,6 +60,9 @@ func RegisterCommand(cmdRegistry SpecialCommandRegistry) {
 
 // ExecuteSpecialCommand parses and executes a special command using the command registry.
 // Syntax: \command[+] [args]
+// \command - actual special command
+// \command[+] - actual special command with verbose mode
+//
 //
 // A special command is identified by a leading backslash (`\`). If the input does not
 // start with a backslash, ExecuteSpecialCommand returns (nil, false, nil) to indicate
@@ -78,8 +81,8 @@ func RegisterCommand(cmdRegistry SpecialCommandRegistry) {
 //
 // An error is returned if the command is not found in the registry or if the command
 // handler returns an error.
-func ExecuteSpecialCommand(ctx context.Context, db database.Queryer, input string) (pgx.Rows, bool, error) {
-	if !strings.HasPrefix(input, "\\") {
+func ExecuteSpecialCommand(ctx context.Context, queryer database.Queryer, specialCommand string) (pgx.Rows, bool, error) {
+	if !strings.HasPrefix(specialCommand, "\\") {
 		return nil, false, nil
 	}
 
@@ -88,9 +91,9 @@ func ExecuteSpecialCommand(ctx context.Context, db database.Queryer, input strin
 		return strings.TrimSuffix(cmd, suff), strings.HasSuffix(cmd, suff)
 	}
 
-	fields := strings.Fields(input)
+	fields := strings.Fields(specialCommand)
 	cmd := fields[0]
-	args := strings.TrimSpace(strings.TrimPrefix(input, cmd))
+	args := strings.TrimSpace(strings.TrimPrefix(specialCommand, cmd))
 
 	cmd, verbose := checkVerbose(cmd)
 
@@ -98,7 +101,7 @@ func ExecuteSpecialCommand(ctx context.Context, db database.Queryer, input strin
 	if !ok {
 		return nil, true, fmt.Errorf("Unknown Command: %s", cmd)
 	}
-	res, err := command.Handler(ctx, db, args, verbose)
+	res, err := command.Handler(ctx, queryer, args, verbose)
 	if err != nil {
 		return nil, true, err
 	}
