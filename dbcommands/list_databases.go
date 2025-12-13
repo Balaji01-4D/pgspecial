@@ -69,5 +69,5 @@ func ListDatabases(ctx context.Context, db database.Queryer, pattern string, ver
 		return nil, err
 	}
 
-	return &pgxspecial.RowResult{Rows: res}, nil
+	return pgxspecial.RowResult{Rows: res}, nil
 }
