@@ -322,7 +322,7 @@ func containsByField(rows []map[string]interface{}, field, expected string) bool
 }
 
 
-func RequiresRowResult(t *testing.T, r pgxspecial.SpecialCommandResult) pgxspecial.RowResult{
+func RequiresRowResult(t *testing.T, r pgxspecial.SpecialCommandResult) pgxspecial.RowResult {
 	t.Helper()
 
 	if r.ResultKind() != pgxspecial.ResultKindRows {
@@ -331,7 +331,7 @@ func RequiresRowResult(t *testing.T, r pgxspecial.SpecialCommandResult) pgxspeci
 
 	rowsResult, ok := r.(pgxspecial.RowResult)
 	if !ok {
-		t.Fatalf("expected QueryRowsResult, got %T", r)
+		t.Fatalf("expected RowsResult, got %T", r)
 	}
 
 	return rowsResult

@@ -8,7 +8,6 @@ import (
 
 	"github.com/balaji01-4d/pgxspecial"
 	"github.com/balaji01-4d/pgxspecial/database"
-	"github.com/jackc/pgx/v5"
 )
 
 func init() {
@@ -16,11 +15,7 @@ func init() {
 		Cmd:         "\\d",
 		Description: "List or describe tables, views and sequences.",
 		Syntax:      "\\d[+] [pattern]",
-		Handler: func(ctx context.Context, db database.Queryer, pattern string, verbose bool) (pgx.Rows, error) {
-			// TODO: Adapt DescribeTableResult to pgx.Rows if needed for CLI
-			// For now, we just return nil as the main usage seems to be via library call
-			return nil, fmt.Errorf("\\d command handler not fully implemented for new return type")
-		},
+		Handler: DescribeTableDetails,
 		CaseSensitive: true,
 	})
 
@@ -28,24 +23,14 @@ func init() {
 		Cmd:         "DESCRIBE",
 		Description: "",
 		Syntax:      "DESCRIBE [pattern]",
-		Handler: func(ctx context.Context, db database.Queryer, pattern string, verbose bool) (pgx.Rows, error) {
-			return nil, fmt.Errorf("DESCRIBE command handler not fully implemented for new return type")
-		},
+		Handler: DescribeTableDetails,
 		CaseSensitive: false,
 	})
 }
 
-// DescribeTableDetails returns details for tables matching the pattern.
-func DescribeTableDetails(ctx context.Context, db database.Queryer, pattern string, verbose bool) ([]pgxspecial.DescribeTableResult, error) {
+func DescribeTableDetails(ctx context.Context, db database.Queryer, pattern string, verbose bool) (pgxspecial.SpecialCommandResult, error) {
 	if pattern == "" {
-		// Fallback to ListObjects if no pattern (this returns pgx.Rows, so we might need to adapt it or change ListObjects)
-		// For now, let's assume ListObjects returns pgx.Rows and we can't easily convert it to DescribeTableResult without reading it.
-		// But ListObjects is for \d without args, which lists tables.
-		// The user asked to rewrite "describe table function".
-		// If pattern is empty, \d lists tables.
-		// If pattern is provided, \d describes the table.
-		// We will focus on the "describe table" part (pattern != "").
-		return nil, nil
+		return  ListObjects(ctx, db, "", verbose, []string{"r", "p", "v", "m", "S", "f", ""})
 	}
 
 	schema, relname := sqlNamePattern(pattern)
@@ -116,7 +101,7 @@ func DescribeTableDetails(ctx context.Context, db database.Queryer, pattern stri
 		results = append(results, res)
 	}
 
-	return results, nil
+	return pgxspecial.DescribeTableListResult{Results: results}, nil
 }
 
 type tableInfo struct {
