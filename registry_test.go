@@ -126,7 +126,7 @@ func TestExecuteSpecialCommandWithKnownCommand(t *testing.T) {
 		Cmd:         "\\testcmd",
 		Description: "A test command",
 		Syntax:      "\\testcmd [args]",
-		Handler: func(ctx context.Context, db database.Queryer, args string, verbose bool) (pgx.Rows, error) {
+		Handler: func(ctx context.Context, db database.Queryer, args string, verbose bool) (pgxspecial.SpecialCommandResult, error) {
 			return nil, nil
 		},
 	})
@@ -147,13 +147,20 @@ func TestExecuteCommand(t *testing.T) {
 	ctx := context.Background()
 
 	// test for registered command
-	rows, isSpecial, err := pgxspecial.ExecuteSpecialCommand(ctx, db, "\\l")
+	result, isSpecial, err := pgxspecial.ExecuteSpecialCommand(ctx, db, "\\l")
 	if err != nil {
 		t.Errorf("Expected no error for known command, got: %v", err)
 	}
 	if !isSpecial {
 		t.Errorf("Expected isSpecial to be true for known command")
 	}
+
+	if result.ResultKind() != pgxspecial.ResultKindRows {
+		t.Errorf("Expected result kind to be rows, got: %v", result.ResultKind())
+	}
+
+	rows := result.(pgxspecial.RowResult).Rows
+
 	defer rows.Close()
 
 	isValidListDatabasesResult(t, rows)
@@ -179,13 +186,18 @@ func TestRegisterCommandAlias(t *testing.T) {
 	defer db.(*pgx.Conn).Close(t.Context())
 	ctx := context.Background()
 
-	rows, isSpecial, err := pgxspecial.ExecuteSpecialCommand(ctx, db, "\\list")
+	result, isSpecial, err := pgxspecial.ExecuteSpecialCommand(ctx, db, "\\list")
 	if err != nil {
 		t.Errorf("Expected no error for known command alias, got: %v", err)
 	}
 	if !isSpecial {
 		t.Errorf("Expected isSpecial to be true for known command alias")
 	}
+	if result.ResultKind() != pgxspecial.ResultKindRows {
+		t.Errorf("Expected result kind to be rows, got: %v", result.ResultKind())
+	}
+
+	rows := result.(pgxspecial.RowResult).Rows
 	defer rows.Close()
 
 	isValidListDatabasesResult(t, rows)
