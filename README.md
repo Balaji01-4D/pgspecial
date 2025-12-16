@@ -65,21 +65,29 @@ func main() {
 
 ## Supported Commands
 
-| Command           | Description                                    |
-| ----------------- | ---------------------------------------------- |
-| `\l`              | List all databases                             |
-| `\d`		        | Describe table, view, sequence or index        |
-| `\dT`             | List all data types                            |
-| `\ddp`            | List default privileges                        |
-| `\dD`             | List all domains                               |
-| `\dE`             | List all foreign tables                        |
-| `\df`             | List all functions                             |
-| `\dp`             | List table / view / sequence access privileges |
-| `\du`             | List all roles                                 |
-| `\dn`             | List all schemas                               |
-| `\db`             | List all tablespaces                           |
-| `\sf`             | Show a function’s definition                   |
-| `\dx`             | List installed extensions                      |
+| Cmd            | Syntax               | Description                                  |
+| -------------- | -------------------- | -------------------------------------------- |
+| `\l` (`\list`) | `\l[+] [pattern]`    | List databases                               |
+| `\d`           | `\d[+] [pattern]`    | List or describe tables, views and sequences |
+| `DESCRIBE`     | `DESCRIBE [pattern]` | List or describe tables, views and sequences |
+| `\dT`          | `\dT[+] [pattern]`   | List data types                              |
+| `\ddp`         | `\ddp [pattern]`     | List default access privilege settings       |
+| `\dD`          | `\dD[+] [pattern]`   | List or describe domains                     |
+| `\dx`          | `\dx[+] [pattern]`   | List extensions                              |
+| `\dE`          | `\dE[+] [pattern]`   | List foreign tables                          |
+| `\df`          | `\df[+] [pattern]`   | List functions                               |
+| `\dt`          | `\dt[+] [pattern]`   | List tables                                  |
+| `\dv`          | `\dv[+] [pattern]`   | List views                                   |
+| `\dm`          | `\dm[+] [pattern]`   | List materialized views                      |
+| `\ds`          | `\ds[+] [pattern]`   | List sequences                               |
+| `\di`          | `\di[+] [pattern]`   | List indexes                                 |
+| `\dp` (`\z`)   | `\dp [pattern]`      | List privileges                              |
+| `\du`          | `\du[+] [pattern]`   | List roles                                   |
+| `\dn`          | `\dn[+] [pattern]`   | List schemas                                 |
+| `\db`          | `\db[+] [pattern]`   | List tablespaces                             |
+| `\!`           | `\! command`         | Execute a shell command                      |
+| `\sf`          | `\sf[+] FUNCNAME`    | Show a function's definition                 |
+
 
 ## Result Types
 
