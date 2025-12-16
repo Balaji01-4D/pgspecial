@@ -21,7 +21,7 @@ func init() {
 
 	pgxspecial.RegisterCommand(pgxspecial.SpecialCommandRegistry{
 		Cmd:           "DESCRIBE",
-		Description:   "",
+		Description:   "List or describe tables, views and sequences.",
 		Syntax:        "DESCRIBE [pattern]",
 		Handler:       DescribeTableDetails,
 		CaseSensitive: false,
