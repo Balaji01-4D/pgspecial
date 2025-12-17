@@ -7,8 +7,6 @@
 - Execute `psql`-style backslash commands directly from Go code  
 - Get structured metadata about databases: tables, types, functions, schemas, roles — not just raw SQL results  
 - Works with `pgx/v5` and `pgxpool` (or any adapter implementing the included DB interface)  
-- Detailed introspection: types, indexes, tablespaces, privileges, and more  
-- **New**: Rich return types for complex commands like `\d` (Describe Table)
 
 ## Installation
 
