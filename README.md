@@ -96,6 +96,9 @@ The library now uses a polymorphic result type `SpecialCommandResult` to handle 
     *   `Columns`: Header names
     *   `Data`: Grid data (rows)
     *   `TableMetaData`: Footer info (Indexes, Constraints, Triggers, etc.)
+3. **`ExtensionVerboseListResult`**: Returned by `\dx+ [pattern`, Contains a list of `ExtensionVerboseResult` structs, each with:
+   *    `Name`: Extension name
+   *    `Description`: Extension's description
 
 ## Contributing
 
