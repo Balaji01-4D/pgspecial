@@ -227,10 +227,14 @@ func getTableColumns(ctx context.Context, db database.Queryer, oid uint32, ti ta
 		showModifiers = true
 	}
 
+	// Fetch sequence values BEFORE iterating rows to avoid "conn busy" error
 	var seqValues []any
 	if ti.RelKind == "S" {
 		headers = append(headers, "Value")
-		// Fetch sequence values
+		// Close the rows first to free the connection
+		rows.Close()
+
+		// Now fetch sequence values
 		seqRows, err := db.Query(ctx, fmt.Sprintf(`SELECT * FROM "%s"."%s"`, schema, name))
 		if err != nil {
 			return nil, nil, err
@@ -242,6 +246,14 @@ func getTableColumns(ctx context.Context, db database.Queryer, oid uint32, ti ta
 				return nil, nil, err
 			}
 		}
+		seqRows.Close()
+
+		// Re-open rows query for the main iteration
+		rows, err = db.Query(ctx, sb.String())
+		if err != nil {
+			return nil, nil, err
+		}
+		defer rows.Close()
 	}
 
 	if ti.RelKind == "i" {
